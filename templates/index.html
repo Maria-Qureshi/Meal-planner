@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Recommender</title>
+<style>
+  :root {
+    --accent: #ff6b4a;
+    --accent-dark: #e5502f;
+    --green: #00875a;
+    --ink: #1c1c1e;
+    --muted: #767680;
+    --bg: #fbf8f4;
+    --card: #ffffff;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+    background: linear-gradient(180deg, #fff4ec 0%, var(--bg) 320px);
+    color: var(--ink);
+    animation: page-in 0.4s ease both;
+  }
+  @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+
+  nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding: 6px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    width: fit-content;
+  }
+  nav a {
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: background 0.2s, color 0.2s;
+  }
+  nav a:hover { background: #fff0e9; color: var(--accent-dark); }
+  nav a.active { background: var(--accent); color: white; }
+
+  h1 {
+    margin: 0 0 1.5rem;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    animation: rise 0.5s ease both;
+  }
+  @keyframes rise { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform: translateY(0);} }
+
+  form.search {
+    background: var(--card);
+    padding: 1.75rem;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 12px 30px -18px rgba(0,0,0,0.25);
+    margin-bottom: 2rem;
+    animation: rise 0.5s 0.05s ease both;
+  }
+  form.search label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  form.search input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #eee;
+    border-radius: 10px;
+    font-size: 1rem;
+    margin-bottom: 1.1rem;
+    font-family: inherit;
+    background: #fafafa;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  form.search input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(255,107,74,0.12);
+  }
+  form.search button {
+    padding: 12px 26px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  form.search button:hover { background: var(--accent-dark); }
+  form.search button:active { transform: scale(0.97); }
+
+  .substituted {
+    background: #fff8e1;
+    border-left: 4px solid #ffb300;
+    padding: 12px 16px;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    animation: rise 0.4s ease both;
+  }
+
+  .results { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 1.25rem;
+    display: flex;
+    gap: 1.1rem;
+    transition: box-shadow 0.25s, transform 0.25s;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: card-in 0.5s ease forwards;
+  }
+  .card:hover { box-shadow: 0 14px 32px -14px rgba(0,0,0,0.22); transform: translateY(-2px); }
+  @keyframes card-in { to { opacity: 1; transform: translateY(0); } }
+
+  .thumb {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(120deg, #f0f0f0 25%, #e6e6e6 37%, #f0f0f0 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .thumb img.loaded { opacity: 1; }
+  .thumb.no-shimmer { animation: none; background: #f2f2f2; }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+  .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b7b7bd;
+    font-size: 0.8rem;
+    background: #f2f2f2;
+  }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .score {
+    display: inline-block;
+    background: #ffece6;
+    color: var(--accent-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .cuisine {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-left: 8px;
+  }
+  .ing-list {
+    font-size: 0.85rem;
+    color: #555;
+    margin: 6px 0;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .ing-list strong { color: var(--ink); }
+
+  .instructions { margin: 8px 0; font-size: 0.9rem; }
+  .instructions summary {
+    cursor: pointer;
+    color: var(--accent-dark);
+    font-weight: 600;
+    padding: 4px 0;
+    user-select: none;
+    list-style: none;
+  }
+  .instructions summary::-webkit-details-marker { display: none; }
+  .instructions summary:before { content: "▸ "; display: inline-block; transition: transform 0.2s; }
+  .instructions[open] summary:before { transform: rotate(90deg); }
+  .instructions summary:hover { text-decoration: underline; }
+  .instructions-body {
+    background: #f8f9fa;
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin-top: 6px;
+    border-radius: 8px;
+    line-height: 1.6;
+    color: #333;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: normal;
+    animation: rise 0.25s ease both;
+  }
+
+  .add-meal-form {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .add-meal-form select {
+    padding: 7px 8px;
+    border: 1.5px solid #eee;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: white;
+  }
+  .add-meal-form button {
+    padding: 9px 16px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .add-meal-form button:hover { background: #006644; }
+  .add-meal-form button:active { transform: scale(0.96); }
+
+  .empty {
+    text-align: center;
+    padding: 3rem 0;
+    color: var(--muted);
+    animation: rise 0.4s ease both;
+  }
+  .empty .emoji { font-size: 2.4rem; display: block; margin-bottom: 0.5rem; }
+
+  /* ---------- Full-page loading overlay ---------- */
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(251, 248, 244, 0.85);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  #loading-overlay.active { opacity: 1; pointer-events: all; }
+  .spinner {
+    width: 46px;
+    height: 46px;
+    border: 4px solid #f0d9d0;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-overlay span { color: var(--muted); font-size: 0.9rem; font-weight: 500; }
+  /* ---------- End loading overlay ---------- */
+</style>
+</head>
+<body>
+
+<div id="loading-overlay"><div class="spinner"></div><span>Finding tasty ideas…</span></div>
+
+<nav>
+  <a href="/" class="active">🏠 Find Recipes</a>
+  <a href="/meal-plan">📅 Meal Plan</a>
+  <a href="/shopping-list">🛒 Shopping List</a>
+</nav>
+
+<h1>🍳 Recipe Recommender</h1>
+
+<form class="search" method="POST" action="/" id="search-form">
+  <label for="main_ingredient">Main ingredient</label>
+  <input type="text" id="main_ingredient" name="main_ingredient"
+         placeholder="e.g. chicken breast, salmon, tofu..."
+         value="{{ main_ingredient }}" required>
+
+  <label for="other_ingredients">Other ingredients you have (comma-separated)</label>
+  <input type="text" id="other_ingredients" name="other_ingredients"
+         placeholder="e.g. garlic, tomato, pasta"
+         value="{{ other_ingredients }}">
+
+  <button type="submit">
+    <span>🔍</span> Find Recipes
+  </button>
+</form>
+
+{% if substituted %}
+  <div class="substituted">
+    No exact match for your main ingredient. Closest substitute found:
+    <strong>{{ substituted }}</strong>
+  </div>
+{% endif %}
+
+{% if results %}
+  <div class="results">
+    {% for r in results %}
+      <div class="card" style="animation-delay: {{ loop.index0 * 0.06 }}s">
+
+        <div class="thumb">
+          {% if r.image_path %}
+            <img src="/{{ r.image_path }}" alt="{{ r.title }}" loading="lazy"
+                 onload="this.classList.add('loaded'); this.parentElement.classList.add('no-shimmer')"
+                 onerror="this.parentElement.classList.add('no-shimmer'); this.replaceWith(Object.assign(document.createElement('div'),{className:'no-image',textContent:'no image'}))">
+          {% else %}
+            <div class="no-image">no image</div>
+          {% endif %}
+        </div>
+
+        <div class="card-body">
+          <div>
+            <span class="score">score {{ r.score }}</span>
+            {% if r.cuisine %}<span class="cuisine">{{ r.cuisine }}</span>{% endif %}
+          </div>
+          <h2 class="card-title">{{ r.title }}</h2>
+
+          {% if r.have %}
+            <div class="ing-list">
+              <strong>You have:</strong> {{ r.have|join(', ') }}
+            </div>
+          {% endif %}
+          {% if r.missing %}
+            <div class="ing-list">
+              <strong>Missing:</strong> {{ r.missing|join(', ') }}
+            </div>
+          {% endif %}
+
+          {% if r.instructions %}
+            <details class="instructions">
+              <summary>Show instructions</summary>
+              <div class="instructions-body">
+                {{ r.instructions|e|replace('\n', '<br>')|safe }}
+              </div>
+            </details>
+          {% endif %}
+
+          <form class="add-meal-form" method="POST" action="/add-to-meal-plan">
+            <input type="hidden" name="title" value="{{ r.title }}">
+            <select name="day">
+              <option value="0">Mon</option>
+              <option value="1">Tue</option>
+              <option value="2">Wed</option>
+              <option value="3">Thu</option>
+              <option value="4">Fri</option>
+              <option value="5">Sat</option>
+              <option value="6">Sun</option>
+            </select>
+            <select name="slot">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner" selected>Dinner</option>
+            </select>
+            <button type="submit">➕ Add to Meal Plan</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% elif request.method == "POST" and main_ingredient %}
+  <div class="empty">
+    <span class="emoji">🥲</span>
+    <p>No recipes found. Try a different main ingredient.</p>
+  </div>
+{% endif %}
+
+<script>
+  // Show a full-page loader while any form on this page submits
+  // (search, add-to-meal-plan) since these are normal page navigations.
+  document.querySelectorAll('form').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      if (form.checkValidity()) {
+        document.getElementById('loading-overlay').classList.add('active');
+      }
+    });
+  });
+
+  // In case an image is already cached and fires onload before this
+  // script runs, mark thumbs that already have a loaded image.
+  document.querySelectorAll('.thumb img').forEach(function (img) {
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.add('loaded');
+      img.parentElement.classList.add('no-shimmer');
+    }
+  });
+</script>
+
+</body>
+</html>

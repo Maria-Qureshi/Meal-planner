@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping List — Week of {{ week }}</title>
+<style>
+  :root {
+    --accent: #ff6b4a;
+    --accent-dark: #e5502f;
+    --green: #00875a;
+    --ink: #1c1c1e;
+    --muted: #767680;
+    --bg: #fbf8f4;
+    --card: #ffffff;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+    background: linear-gradient(180deg, #fff4ec 0%, var(--bg) 320px);
+    color: var(--ink);
+    animation: page-in 0.4s ease both;
+  }
+  @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes rise { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform: translateY(0);} }
+
+  nav {
+    display: flex; gap: 0.5rem; margin-bottom: 2rem; padding: 6px;
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(8px);
+    border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); width: fit-content;
+  }
+  nav a {
+    text-decoration: none; color: var(--ink); font-weight: 600; font-size: 0.9rem;
+    padding: 8px 16px; border-radius: 999px; transition: background 0.2s, color 0.2s;
+  }
+  nav a:hover { background: #fff0e9; color: var(--accent-dark); }
+  nav a.active { background: var(--accent); color: white; }
+
+  h1 { margin: 0 0 1.25rem; font-size: 2rem; letter-spacing: -0.02em; animation: rise 0.5s ease both; }
+
+  .progress-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.4rem;
+    margin: 0 0 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    animation: rise 0.5s 0.05s ease both;
+  }
+  .progress-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 0.9rem; color: var(--muted); margin-bottom: 8px;
+  }
+  .progress-top strong { color: var(--ink); font-size: 1rem; }
+  .progress-track {
+    height: 8px; background: #f0eeea; border-radius: 999px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), #ffa06b);
+    border-radius: 999px; transition: width 0.4s cubic-bezier(.4,0,.2,1);
+  }
+  .celebrate { color: var(--green); font-weight: 700; }
+
+  .toolbar { display: flex; gap: 0.75rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+  .toolbar button {
+    padding: 8px 16px; background: white; border: none; border-radius: 10px;
+    cursor: pointer; font-size: 0.85rem; font-family: inherit; font-weight: 600;
+    color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .toolbar button:hover { box-shadow: 0 6px 16px -8px rgba(0,0,0,0.25); }
+  .toolbar button:active { transform: scale(0.97); }
+
+  .add-form {
+    display: flex; gap: 8px; margin: 0 0 1.5rem;
+    animation: rise 0.5s 0.08s ease both;
+  }
+  .add-form input {
+    flex: 1; padding: 10px 14px; border: 1.5px solid #eee; border-radius: 10px;
+    font-family: inherit; background: white; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .add-form input:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(255,107,74,0.12);
+  }
+  .add-form button {
+    padding: 10px 18px; background: var(--accent); color: white; border: none;
+    border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .add-form button:hover { background: var(--accent-dark); }
+  .add-form button:active { transform: scale(0.96); }
+  .add-form button:disabled { opacity: 0.6; cursor: default; }
+
+  .cat {
+    margin: 1.75rem 0 0.4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 1.4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #efece7;
+  }
+
+  .list { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+  .cat-block:first-of-type { margin-top: 0; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f5f3ef;
+    gap: 12px;
+    background: white;
+    transition: background 0.2s, opacity 0.25s, transform 0.25s, max-height 0.3s, padding 0.3s;
+    animation: item-in 0.35s ease both;
+  }
+  @keyframes item-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  .item:last-child { border-bottom: none; }
+  .item.checked { background: #fbfbfa; }
+  .item.checked label { text-decoration: line-through; color: #aaa; }
+  .item.removing { opacity: 0; transform: translateX(30px); max-height: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; }
+
+  .qty { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .checkbox-btn {
+    width: 24px; height: 24px; flex-shrink: 0;
+    border: 2px solid #d9d6d0; background: white; border-radius: 7px;
+    cursor: pointer; font-size: 0.85rem; color: white;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .checkbox-btn:hover { border-color: var(--accent); }
+  .checkbox-btn.checked { background: var(--green); border-color: var(--green); }
+  .checkbox-btn.pop { animation: check-pop 0.3s ease; }
+  @keyframes check-pop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+  label { flex: 1; cursor: default; font-size: 0.96rem; }
+
+  .delete-btn {
+    background: none; border: none; color: #d4d1cb; cursor: pointer;
+    font-size: 1.1rem; padding: 0 4px; transition: color 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  .delete-btn:hover { color: #d9362e; transform: scale(1.15); }
+
+  .empty-state {
+    text-align: center; padding: 3.5rem 1rem; color: var(--muted);
+    background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    animation: rise 0.4s ease both;
+  }
+  .empty-state .emoji { font-size: 2.4rem; display: block; margin-bottom: 0.5rem; }
+  .empty-state a { color: var(--accent-dark); font-weight: 600; text-decoration: none; }
+  .empty-state a:hover { text-decoration: underline; }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: white; padding: 10px 18px; border-radius: 999px;
+    font-size: 0.85rem; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.4); z-index: 1000;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- small inline spinner for add-item ---------- */
+  .mini-spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite;
+    display: inline-block; vertical-align: -2px; margin-right: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/">🏠 Find Recipes</a>
+  <a href="/meal-plan?week={{ week }}">📅 Meal Plan</a>
+  <a href="/shopping-list?week={{ week }}" class="active">🛒 Shopping List</a>
+</nav>
+
+<h1>🛒 Shopping List</h1>
+
+{% if total > 0 %}
+  <div class="progress-card">
+    <div class="progress-top">
+      <span><strong id="checked-count">{{ checked }}</strong> / <span id="total-count">{{ total }}</span> items checked</span>
+      <span id="celebrate" class="celebrate" style="{% if checked != total %}display:none{% endif %}">🎉 All done!</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width: {{ (checked / total * 100) if total else 0 }}%;"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button type="button" id="uncheck-all-btn">Uncheck all</button>
+  </div>
+
+  <form class="add-form" id="add-form">
+    <input type="hidden" name="week" value="{{ week }}">
+    <input type="text" name="item" id="add-item-input" placeholder="Add an item..." required>
+    <input type="text" name="quantity" id="add-qty-input" placeholder="Qty" style="max-width:80px;">
+    <button type="submit" id="add-btn">Add</button>
+  </form>
+
+  <div id="list-root">
+    {% for category, items in grouped.items() %}
+      <div class="cat-block" data-cat-block>
+        <div class="cat">{{ category }}</div>
+        <div class="list">
+          {% for it in items %}
+            <div class="item {% if it.is_checked %}checked{% endif %}" data-item-id="{{ it.id }}">
+              <button type="button" class="checkbox-btn {% if it.is_checked %}checked{% endif %}" title="Toggle">
+                {% if it.is_checked %}✓{% endif %}
+              </button>
+              <label>{{ it.item }}</label>
+              <span class="qty">
+                {% if it.quantity %}{{ "%.2f"|format(it.quantity)|replace(".00","") }}{% endif %}
+                {{ it.unit or "" }}
+              </span>
+              <button type="button" class="delete-btn" title="Remove">✕</button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="empty-state">
+    <span class="emoji">🧺</span>
+    <p>Nothing here yet.</p>
+    <p>Add recipes to your <a href="/meal-plan?week={{ week }}">meal plan</a> first.</p>
+  </div>
+{% endif %}
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  const WEEK = {{ week|tojson }};
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  function post(url, data) {
+    const body = new URLSearchParams(Object.assign({ week: WEEK }, data));
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: body.toString()
+    }).then(function (r) { return r.json(); });
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.item:not(.removing)');
+    const total = items.length;
+    const checked = document.querySelectorAll('.item.checked:not(.removing)').length;
+    document.getElementById('checked-count').textContent = checked;
+    document.getElementById('total-count').textContent = total;
+    const fill = document.getElementById('progress-fill');
+    fill.style.width = (total ? (checked / total * 100) : 0) + '%';
+    document.getElementById('celebrate').style.display = (total > 0 && checked === total) ? '' : 'none';
+
+    // if the list becomes empty, show the empty state
+    if (total === 0) {
+      location.reload();
+    }
+  }
+
+  // ---------- Toggle checkbox ----------
+  document.getElementById('list-root') && document.getElementById('list-root').addEventListener('click', function (e) {
+    const box = e.target.closest('.checkbox-btn');
+    const del = e.target.closest('.delete-btn');
+
+    if (box) {
+      const row = box.closest('.item');
+      const itemId = row.dataset.itemId;
+      const willCheck = !row.classList.contains('checked');
+
+      // optimistic UI update
+      row.classList.toggle('checked', willCheck);
+      box.classList.toggle('checked', willCheck);
+      box.textContent = willCheck ? '✓' : '';
+      box.classList.add('pop');
+      setTimeout(function () { box.classList.remove('pop'); }, 300);
+      updateProgress();
+
+      post('/shopping-list/toggle', { item_id: itemId, checked: willCheck ? '1' : '0' })
+        .catch(function () {
+          // revert on failure
+          row.classList.toggle('checked', !willCheck);
+          box.classList.toggle('checked', !willCheck);
+          box.textContent = !willCheck ? '✓' : '';
+          updateProgress();
+          showToast("Couldn't update — check your connection");
+        });
+    }
+
+    if (del) {
+      const row = del.closest('.item');
+      const itemId = row.dataset.itemId;
+      const catBlock = row.closest('[data-cat-block]');
+
+      row.classList.add('removing');
+      post('/shopping-list/delete', { item_id: itemId })
+        .then(function () {
+          setTimeout(function () {
+            row.remove();
+            if (catBlock && !catBlock.querySelector('.item')) catBlock.remove();
+            updateProgress();
+          }, 250);
+          showToast('Item removed');
+        })
+        .catch(function () {
+          row.classList.remove('removing');
+          showToast("Couldn't remove item");
+        });
+    }
+  });
+
+  // ---------- Uncheck all ----------
+  const uncheckBtn = document.getElementById('uncheck-all-btn');
+  if (uncheckBtn) {
+    uncheckBtn.addEventListener('click', function () {
+      document.querySelectorAll('.item.checked').forEach(function (row) {
+        row.classList.remove('checked');
+        const b = row.querySelector('.checkbox-btn');
+        b.classList.remove('checked');
+        b.textContent = '';
+      });
+      updateProgress();
+      post('/shopping-list/uncheck-all', {}).then(function () {
+        showToast('All items unchecked');
+      });
+    });
+  }
+
+  // ---------- Add item ----------
+  const addForm = document.getElementById('add-form');
+  if (addForm) {
+    addForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const input = document.getElementById('add-item-input');
+      const qtyInput = document.getElementById('add-qty-input');
+      const item = input.value.trim();
+      const qty = qtyInput.value.trim();
+      if (!item) return;
+
+      const btn = document.getElementById('add-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="mini-spinner"></span>Adding…';
+
+      post('/shopping-list/add', { item: item, quantity: qty })
+        .then(function (res) {
+          if (res.ok) {
+            let catBlock = document.querySelector('.cat-block[data-cat="other"]');
+            if (!catBlock) {
+              catBlock = document.createElement('div');
+              catBlock.className = 'cat-block';
+              catBlock.dataset.catBlock = '';
+              catBlock.dataset.cat = 'other';
+              catBlock.innerHTML = '<div class="cat">other</div><div class="list"></div>';
+              document.getElementById('list-root').appendChild(catBlock);
+            }
+            const row = document.createElement('div');
+            row.className = 'item';
+            row.dataset.itemId = res.id;
+            row.innerHTML =
+              '<button type="button" class="checkbox-btn" title="Toggle"></button>' +
+              '<label></label>' +
+              '<span class="qty"></span>' +
+              '<button type="button" class="delete-btn" title="Remove">✕</button>';
+            row.querySelector('label').textContent = res.item;
+            row.querySelector('.qty').textContent = res.quantity || '';
+            catBlock.querySelector('.list').appendChild(row);
+
+            input.value = '';
+            qtyInput.value = '';
+            updateProgress();
+            showToast('Item added');
+          } else {
+            showToast("Couldn't add item");
+          }
+        })
+        .catch(function () { showToast("Couldn't add item"); })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          input.focus();
+        });
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

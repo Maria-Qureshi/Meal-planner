@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Plan — Week of {{ week }}</title>
+
+    <style>
+        :root {
+            --accent: #ff6b4a;
+            --accent-dark: #e5502f;
+            --ink: #1c1c1e;
+            --muted: #767680;
+            --bg: #fbf8f4;
+            --card: #ffffff;
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem 4rem;
+            background: linear-gradient(180deg, #fff4ec 0%, var(--bg) 320px);
+            color: var(--ink);
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 2rem;
+            padding: 6px;
+            background: white;
+            border-radius: 999px;
+            width: fit-content;
+            box-shadow: 0 1px 5px #00000010;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--ink);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 999px;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .week-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .week-nav a {
+            padding: 10px 14px;
+            background: white;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 1px 4px #00000010;
+        }
+
+        .table-wrap {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 25px #0000000d;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 850px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #f0eeea;
+            padding: 10px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #fbf8f4;
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        th.today {
+            background: #ffe1d5;
+            color: var(--accent-dark);
+        }
+
+        .today-label {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 3px 7px;
+            background: var(--accent);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            text-transform: none;
+        }
+
+        td {
+            min-width: 130px;
+            height: 88px;
+        }
+
+        .slot-label {
+            background: #fbf8f4;
+            font-weight: 700;
+            width: 100px;
+        }
+
+        .meal-slot {
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        .meal-slot:hover {
+            background: #fffaf6;
+        }
+
+        .meal-slot.selected {
+            background: #ffe1d5;
+            box-shadow: inset 0 0 0 3px var(--accent);
+        }
+
+        .filled {
+            background: #fff0e9;
+            border: 1px solid #ffdccb;
+            border-radius: 10px;
+            padding: 9px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filled .title {
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .remove-form {
+            margin: 0;
+        }
+
+        .remove-form button {
+            background: none;
+            border: none;
+            color: #c0392b;
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+            font: inherit;
+            font-size: 0.8rem;
+        }
+
+        .empty-slot {
+            color: #d8d5cf;
+            text-align: center;
+            font-size: 1.6rem;
+            padding-top: 18px;
+        }
+
+        .meal-slot:hover .empty-slot {
+            color: var(--accent);
+        }
+
+        .selection-info {
+            display: none;
+            margin-top: 15px;
+            padding: 14px 18px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px #0000000f;
+        }
+
+        .selection-info.active {
+            display: block;
+        }
+
+        .selection-info strong {
+            color: var(--accent-dark);
+        }
+
+        .cta {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1.75rem;
+        }
+
+        .cta:hover {
+            background: var(--accent-dark);
+        }
+
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #fbf8f4dd;
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        #loading-overlay.active {
+            display: flex;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 1rem 0.5rem 3rem;
+            }
+
+            nav {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            table {
+                min-width: 800px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading-overlay">Updating your plan…</div>
+
+    <nav>
+        <a href="/">🏠 Find Recipes</a>
+        <a href="/meal-plan" class="active">📅 Meal Plan</a>
+        <a href="/shopping-list?week={{ week }}">🛒 Shopping List</a>
+    </nav>
+
+    <h1>📅 Meal Plan</h1>
+
+    <div class="week-nav">
+        <a href="/meal-plan?week={{ prev_week }}">← Previous</a>
+        <strong>Week of {{ week }}</strong>
+        <a href="/meal-plan?week={{ next_week }}">Next →</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+
+                    {% for d in days %}
+                    <th class="{% if d.date == today %}today{% endif %}">
+                        {{ d.label }}
+
+                        {% if d.date == today %}
+                        <br>
+                        <span class="today-label">Today</span>
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for slot in slots %}
+                <tr>
+                    <td class="slot-label">{{ slot|capitalize }}</td>
+
+                    {% for day_idx in range(7) %}
+                    {% set e = grid.get((day_idx, slot)) %}
+
+                    <td
+                        class="meal-slot"
+                        data-day="{{ day_idx }}"
+                        data-slot="{{ slot }}"
+                        data-week="{{ week }}"
+                        onclick="selectMealSlot(this)"
+                    >
+                        {% if e %}
+                        <div class="filled">
+                            <div class="title">{{ e.title }}</div>
+
+                            <form
+                                class="remove-form"
+                                method="POST"
+                                action="/meal-plan/remove"
+                                onclick="event.stopPropagation()"
+                            >
+                                <input type="hidden" name="week" value="{{ week }}">
+                                <input type="hidden" name="day" value="{{ day_idx }}">
+                                <input type="hidden" name="slot" value="{{ slot }}">
+
+                                <button type="submit">Remove</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="empty-slot">+</div>
+                        {% endif %}
+                    </td>
+
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="selection-info" class="selection-info">
+        Selected day: <strong id="selected-day"></strong>
+        |
+        Meal: <strong id="selected-slot"></strong>
+    </div>
+
+    <a href="/" class="cta">＋ Find Recipes to Add</a>
+
+    <script>
+        function selectMealSlot(cell) {
+            document.querySelectorAll(".meal-slot.selected")
+                .forEach(function (slot) {
+                    slot.classList.remove("selected");
+                });
+
+            cell.classList.add("selected");
+
+            const day = cell.dataset.day;
+            const slot = cell.dataset.slot;
+            const week = cell.dataset.week;
+
+            sessionStorage.setItem("selectedWeek", week);
+            sessionStorage.setItem("selectedDay", day);
+            sessionStorage.setItem("selectedSlot", slot);
+
+            document.getElementById("selected-day").textContent =
+                getDayName(day);
+
+            document.getElementById("selected-slot").textContent =
+                capitalize(slot);
+
+            document.getElementById("selection-info")
+                .classList.add("active");
+        }
+
+        function getDayName(day) {
+            const days = [
+                "Monday", "Tuesday", "Wednesday", "Thursday",
+                "Friday", "Saturday", "Sunday"
+            ];
+
+            return days[parseInt(day, 10)];
+        }
+
+        function capitalize(text) {
+            if (!text) return "";
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const savedDay = sessionStorage.getItem("selectedDay");
+            const savedSlot = sessionStorage.getItem("selectedSlot");
+            const savedWeek = sessionStorage.getItem("selectedWeek");
+
+            if (
+                savedDay !== null &&
+                savedSlot !== null &&
+                savedWeek === "{{ week }}"
+            ) {
+                const cell = document.querySelector(
+                    '.meal-slot[data-day="' + savedDay +
+                    '"][data-slot="' + savedSlot + '"]'
+                );
+
+                if (cell) {
+                    cell.classList.add("selected");
+
+                    document.getElementById("selected-day").textContent =
+                        getDayName(savedDay);
+
+                    document.getElementById("selected-slot").textContent =
+                        capitalize(savedSlot);
+
+                    document.getElementById("selection-info")
+                        .classList.add("active");
+                }
+            }
+
+            document.querySelectorAll("form").forEach(function (form) {
+                form.addEventListener("submit", function () {
+                    document.getElementById("loading-overlay")
+                        .classList.add("active");
+                });
+            });
+
+            document.querySelectorAll(".week-nav a, .cta, nav a")
+                .forEach(function (link) {
+                    link.addEventListener("click", function () {
+                        document.getElementById("loading-overlay")
+                            .classList.add("active");
+                    });
+                });
+        });
+    </script>
+
+</body>
+</html>
