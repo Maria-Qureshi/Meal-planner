@@ -202,10 +202,7 @@ Data bias: recipe corpora over-represent certain cuisines; dietary constraints a
 📦 Scale to Food.com / RecipeNLG and report training-time and quality scaling
 
 📚 References
-[1] W. McKinney, "Data structures for statistical computing in Python," in Proc. 9th Python in Science Conference, 2010, pp. 56–61.
 
-[2] M. Grinberg, Flask Web Development, 2nd ed. O'Reilly Media, 2018.
+[1] Kaggle, "Food.com Recipes and Interactions." [Online]. Available: https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions
 
-[3] Kaggle, "Food.com Recipes and Interactions." [Online]. Available: https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions
-
-[4] Kaggle, "RecipeNLG: A Cooking Recipes Dataset." [Online]. Available: https://www.kaggle.com/datasets/paultimothymooney/recipenlg
+[2] Kaggle, "RecipeNLG: A Cooking Recipes Dataset." [Online]. Available: https://www.kaggle.com/datasets/paultimothymooney/recipenlg
